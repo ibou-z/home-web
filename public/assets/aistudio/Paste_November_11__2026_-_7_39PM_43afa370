@@ -1,0 +1,627 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora TV</title>
+<style>
+/* ---------- Base ---------- */
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+body { font-family: "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, sans-serif; color: #fff; }
+
+#stage {
+  position: absolute; left: 50%; top: 50%;
+  width: 1920px; height: 1080px; margin-left: -960px; margin-top: -540px;
+  overflow: hidden; background: #07090f;
+  -webkit-transform-origin: 50% 50%; transform-origin: 50% 50%;
+  opacity: 0; -webkit-transition: opacity .8s ease; transition: opacity .8s ease;
+}
+#stage.ready { opacity: 1; }
+
+/* ---------- Background ---------- */
+#bgBase, .glow, #bgShade { position: absolute; }
+#bgBase {
+  left: 0; top: 0; width: 1920px; height: 1080px;
+  background: #080b14;
+  background: -webkit-linear-gradient(top left, #0d1426 0%, #07090f 55%, #0b0813 100%);
+  background: linear-gradient(160deg, #0d1426 0%, #07090f 55%, #0b0813 100%);
+}
+.glow {
+  right: -420px; top: -420px; width: 1500px; height: 1300px; opacity: 0;
+  -webkit-transition: opacity 1.1s ease; transition: opacity 1.1s ease;
+}
+.glow.on { opacity: 1; }
+#glowCool {
+  position: absolute; left: -500px; bottom: -600px; width: 1400px; height: 1100px;
+  background: -webkit-radial-gradient(center, rgba(40,90,200,.22) 0%, rgba(0,0,0,0) 68%);
+  background: radial-gradient(ellipse at center, rgba(40,90,200,.22) 0%, rgba(0,0,0,0) 68%);
+}
+#bgShade {
+  left: 0; bottom: 0; width: 1920px; height: 220px;
+  background: -webkit-linear-gradient(top, rgba(5,6,10,0), rgba(5,6,10,.92));
+  background: linear-gradient(to bottom, rgba(5,6,10,0), rgba(5,6,10,.92));
+}
+
+/* ---------- Top bar ---------- */
+#top { position: absolute; left: 0; top: 0; width: 1920px; height: 120px; z-index: 5; }
+#logo { position: absolute; left: 100px; top: 32px; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+#logoMark {
+  width: 56px; height: 56px; border-radius: 28px; margin-right: 18px;
+  background: -webkit-linear-gradient(top left, #7ee8fa, #7b61ff 60%, #ff6ec4);
+  background: linear-gradient(135deg, #7ee8fa, #7b61ff 60%, #ff6ec4);
+  box-shadow: 0 6px 24px rgba(123,97,255,.5);
+}
+#logoText { font-size: 40px; font-weight: 700; letter-spacing: 1px; }
+#greeting { position: absolute; left: 520px; top: 42px; font-size: 32px; color: rgba(255,255,255,.65); }
+#clockBox { position: absolute; right: 100px; top: 24px; text-align: right; }
+#clock { font-size: 54px; font-weight: 300; line-height: 60px; letter-spacing: 1px; }
+#date { font-size: 24px; color: rgba(255,255,255,.6); margin-top: 2px; }
+#wifi { position: absolute; right: 330px; top: 44px; width: 44px; height: 44px; opacity: .8; }
+
+/* ---------- Rows ---------- */
+#rows { position: absolute; left: 0; top: 120px; width: 1920px; height: 890px; overflow: hidden; z-index: 2; }
+#rowsInner {
+  position: relative; width: 1920px;
+  -webkit-transition: -webkit-transform .55s cubic-bezier(.2,.7,.2,1); transition: transform .55s cubic-bezier(.2,.7,.2,1);
+}
+.row { position: relative; padding-bottom: 40px; opacity: .55; -webkit-transition: opacity .35s ease; transition: opacity .35s ease; }
+.row.active, .row.hero { opacity: 1; }
+.rowTitle { margin: 0 0 0 100px; font-size: 38px; font-weight: 700; letter-spacing: .5px; height: 46px; line-height: 46px; }
+.track {
+  position: relative; display: -webkit-flex; display: flex; padding: 22px 0 22px 100px;
+  -webkit-transition: -webkit-transform .4s cubic-bezier(.2,.7,.2,1); transition: transform .4s cubic-bezier(.2,.7,.2,1);
+}
+
+/* ---------- Items ---------- */
+.item {
+  position: relative; margin-right: 32px; -webkit-flex-shrink: 0; flex-shrink: 0; border-radius: 26px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  -webkit-transition: -webkit-transform .28s ease, box-shadow .28s ease; transition: transform .28s ease, box-shadow .28s ease;
+  -webkit-animation: rise .6s ease backwards; animation: rise .6s ease backwards;
+}
+.item.focused {
+  -webkit-transform: scale(1.09); transform: scale(1.09);
+  box-shadow: 0 30px 60px rgba(0,0,0,.6);
+}
+.ring {
+  position: absolute; left: -7px; top: -7px; right: -7px; bottom: -7px;
+  border: 6px solid #fff; border-radius: 32px; opacity: 0;
+  -webkit-transition: opacity .2s ease; transition: opacity .2s ease; pointer-events: none;
+}
+.item.focused .ring { opacity: 1; }
+.face { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 26px; overflow: hidden; }
+.face:after {
+  content: ""; position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  background: -webkit-linear-gradient(top, rgba(255,255,255,.22), rgba(255,255,255,0) 45%);
+  background: linear-gradient(to bottom, rgba(255,255,255,.22), rgba(255,255,255,0) 45%);
+}
+@-webkit-keyframes rise { from { opacity: 0; -webkit-transform: translateY(40px); } to { opacity: 1; -webkit-transform: translateY(0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+/* App tiles */
+.app { width: 300px; height: 190px; }
+.app .ico { position: absolute; left: 30px; top: 26px; width: 76px; height: 76px; z-index: 2; }
+.app .ico svg, .sys .ico svg, #launch .lIcon svg { width: 100%; height: 100%; display: block; }
+.app .name { position: absolute; left: 30px; bottom: 24px; font-size: 36px; font-weight: 700; z-index: 2; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+
+/* Watch cards */
+.watch { width: 440px; height: 248px; }
+.watch .title { position: absolute; left: 28px; bottom: 56px; right: 24px; font-size: 38px; font-weight: 700; z-index: 2; text-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.watch .sub { position: absolute; left: 28px; bottom: 24px; font-size: 24px; color: rgba(255,255,255,.85); z-index: 2; }
+.watch .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 170px;
+  background: -webkit-linear-gradient(top, rgba(0,0,0,0), rgba(0,0,0,.65)); background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.65)); }
+.watch .play { position: absolute; right: 24px; top: 22px; width: 64px; height: 64px; border-radius: 32px; background: rgba(0,0,0,.38); z-index: 2; }
+.watch .play:before { content: ""; position: absolute; left: 25px; top: 18px; border-left: 22px solid #fff; border-top: 14px solid transparent; border-bottom: 14px solid transparent; }
+.watch .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: rgba(255,255,255,.28); z-index: 3; }
+.watch .bar i { display: block; height: 8px; background: #fff; }
+.watch .orb { position: absolute; width: 300px; height: 300px; border-radius: 150px; right: -90px; top: -110px; background: rgba(255,255,255,.14); }
+
+/* System tiles */
+.sys { width: 330px; height: 130px; background: rgba(255,255,255,.09); }
+.sys .face { background: rgba(255,255,255,.09); }
+.sys.focused .face { background: rgba(255,255,255,.2); }
+.sys .face:after { display: none; }
+.sys .ico { position: absolute; left: 26px; top: 29px; width: 72px; height: 72px; border-radius: 36px; padding: 14px; box-sizing: border-box; z-index: 2; }
+.sys .name { position: absolute; left: 120px; top: 0; right: 14px; height: 130px; line-height: 130px; font-size: 32px; font-weight: 600; z-index: 2; white-space: nowrap; }
+
+/* ---------- Hero ---------- */
+.hero { height: 460px; }
+#heroText { position: absolute; left: 100px; top: 24px; width: 830px; -webkit-transition: opacity .35s ease, -webkit-transform .35s ease; transition: opacity .35s ease, transform .35s ease; }
+#heroText.out { opacity: 0; -webkit-transform: translateX(-24px); transform: translateX(-24px); }
+#heroBadge { display: inline-block; padding: 6px 18px; border-radius: 20px; font-size: 24px; font-weight: 700; letter-spacing: 3px; background: rgba(255,255,255,.18); margin-bottom: 8px; }
+#heroTitle { font-size: 92px; font-weight: 800; letter-spacing: -2px; line-height: 108px; text-shadow: 0 4px 24px rgba(0,0,0,.4); }
+#heroMeta { font-size: 28px; color: rgba(255,255,255,.7); margin: 2px 0 14px 0; }
+#heroDesc { font-size: 30px; line-height: 42px; color: rgba(255,255,255,.85); width: 780px; height: 84px; overflow: hidden; }
+#heroBtns { margin-top: 26px; display: -webkit-flex; display: flex; position: relative; }
+.btn {
+  position: relative; height: 76px; line-height: 76px; padding: 0 44px; margin-right: 24px; border-radius: 38px;
+  font-size: 32px; font-weight: 700; white-space: nowrap;
+  -webkit-transition: -webkit-transform .25s ease, background .25s ease; transition: transform .25s ease, background .25s ease;
+}
+.btn .ring { border-radius: 44px; left: -7px; top: -7px; right: -7px; bottom: -7px; }
+#btnPlay { background: #fff; color: #0a0d16; }
+#btnList { background: rgba(255,255,255,.2); color: #fff; }
+.btn.focused { -webkit-transform: scale(1.08); transform: scale(1.08); }
+#heroArt {
+  position: absolute; right: 100px; top: 24px; width: 760px; height: 410px; border-radius: 34px; overflow: hidden;
+  box-shadow: 0 30px 70px rgba(0,0,0,.55);
+  -webkit-transition: opacity .35s ease; transition: opacity .35s ease;
+}
+#heroArt.out { opacity: 0; }
+#heroArt .c1 { position: absolute; width: 520px; height: 520px; border-radius: 260px; right: -140px; top: -180px; background: rgba(255,255,255,.14); }
+#heroArt .c2 { position: absolute; width: 360px; height: 360px; border-radius: 180px; left: -100px; bottom: -150px; background: rgba(0,0,0,.25); }
+#heroArt .c3 { position: absolute; width: 150px; height: 150px; border-radius: 75px; left: 330px; top: 120px; background: rgba(255,255,255,.12); }
+#heroArt .shine { position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  background: -webkit-linear-gradient(top left, rgba(255,255,255,.22), rgba(255,255,255,0) 50%); background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,0) 50%); }
+#heroDots { position: absolute; right: 100px; top: 442px; width: 760px; text-align: center; font-size: 0; }
+#heroDots i { display: inline-block; width: 14px; height: 14px; border-radius: 7px; margin: 0 7px; background: rgba(255,255,255,.3); -webkit-transition: width .3s, background .3s; transition: width .3s, background .3s; }
+#heroDots i.on { width: 42px; background: #fff; }
+
+/* ---------- Hint bar ---------- */
+#hint { position: absolute; left: 0; bottom: 26px; width: 1920px; text-align: center; font-size: 24px; color: rgba(255,255,255,.5); z-index: 6; letter-spacing: 1px; }
+#hint b { color: #fff; font-weight: 600; padding: 0 6px; }
+#hint span { margin: 0 28px; }
+
+/* ---------- Launch overlay + toast ---------- */
+#launch {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 20;
+  background: rgba(5,7,12,.94); opacity: 0; visibility: hidden;
+  -webkit-transition: opacity .3s ease, visibility .3s; transition: opacity .3s ease, visibility .3s;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  text-align: center;
+}
+#launch.show { opacity: 1; visibility: visible; }
+#launch .box { -webkit-transform: scale(.88); transform: scale(.88); -webkit-transition: -webkit-transform .4s cubic-bezier(.2,.8,.2,1); transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+#launch.show .box { -webkit-transform: scale(1); transform: scale(1); }
+#launch .lIcon { width: 220px; height: 220px; border-radius: 52px; margin: 0 auto 40px auto; padding: 56px; box-sizing: border-box; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+#launch .lName { font-size: 64px; font-weight: 800; }
+#launch .lSub { font-size: 30px; color: rgba(255,255,255,.65); margin-top: 12px; }
+.spinner { width: 54px; height: 54px; margin: 44px auto 0 auto; border: 6px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%;
+  -webkit-animation: spin .9s linear infinite; animation: spin .9s linear infinite; }
+@-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+#toast {
+  position: absolute; left: 50%; bottom: 110px; width: 620px; margin-left: -310px; padding: 22px 0; text-align: center; z-index: 30;
+  border-radius: 40px; background: rgba(30,34,48,.96); font-size: 30px; font-weight: 600; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  opacity: 0; -webkit-transform: translateY(20px); transform: translateY(20px);
+  -webkit-transition: opacity .3s ease, -webkit-transform .3s ease; transition: opacity .3s ease, transform .3s ease;
+}
+#toast.show { opacity: 1; -webkit-transform: translateY(0); transform: translateY(0); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bgBase"></div>
+  <div id="glowCool"></div>
+  <div class="glow" id="glowA"></div>
+  <div class="glow" id="glowB"></div>
+  <div id="bgShade"></div>
+
+  <div id="top">
+    <div id="logo"><div id="logoMark"></div><div id="logoText">Aurora</div></div>
+    <div id="greeting"></div>
+    <svg id="wifi" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M2 9a15 15 0 0 1 20 0"/><path d="M5.5 12.5a10 10 0 0 1 13 0"/><path d="M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r=".8"/></svg>
+    <div id="clockBox"><div id="clock">00:00</div><div id="date"></div></div>
+  </div>
+
+  <div id="rows">
+    <div id="rowsInner">
+      <div class="row hero" id="rowHero">
+        <div id="heroArt"><div class="c1"></div><div class="c2"></div><div class="c3"></div><div class="shine"></div></div>
+        <div id="heroText">
+          <div id="heroBadge"></div>
+          <div id="heroTitle"></div>
+          <div id="heroMeta"></div>
+          <div id="heroDesc"></div>
+          <div id="heroBtns">
+            <div class="btn" id="btnPlay">&#9654;&nbsp; Play</div>
+            <div class="btn" id="btnList">+&nbsp; My List</div>
+          </div>
+        </div>
+        <div id="heroDots"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint">
+    <span><b>&#9664; &#9650; &#9660; &#9654;</b> Navigate</span>
+    <span><b>OK</b> Select</span>
+    <span><b>BACK</b> Close</span>
+  </div>
+
+  <div id="launch"><div class="box">
+    <div class="lIcon" id="lIcon"></div>
+    <div class="lName" id="lName"></div>
+    <div class="lSub" id="lSub"></div>
+    <div class="spinner"></div>
+  </div></div>
+  <div id="toast"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Data ---------- */
+  var ICONS = {
+    play:   '<polygon points="8,5 19,12 8,19"/>',
+    tv:     '<rect x="2" y="4" width="20" height="13" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+    music:  '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+    game:   '<rect x="2" y="7" width="20" height="11" rx="5"/><line x1="7" y1="10" x2="7" y2="15"/><line x1="4.5" y1="12.5" x2="9.5" y2="12.5"/><circle cx="16" cy="11.5" r="1"/><circle cx="18.5" cy="14" r="1"/>',
+    photo:  '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/>',
+    globe:  '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><line x1="3" y1="12" x2="21" y2="12"/>',
+    sports: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18"/><path d="M12 3c-3 3-3 15 0 18"/>',
+    kids:   '<polygon points="12,2 15,9 22,9.5 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9.5 9,9"/>',
+    search: '<circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/>',
+    sliders:'<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2.2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="8" cy="18" r="2.2"/>',
+    plug:   '<path d="M4 8h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><line x1="9" y1="3" x2="9" y2="8"/><line x1="15" y1="3" x2="15" y2="8"/>',
+    cast:   '<path d="M3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M3 12a7 7 0 0 1 7 7"/><path d="M3 16a3 3 0 0 1 3 3"/>',
+    sound:  '<polygon points="3,9 7,9 12,5 12,19 7,15 3,15"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M19 6a9 9 0 0 1 0 12"/>',
+    pic:    '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M7 12l3-3 3 3 2-2 2 2"/>'
+  };
+
+  var HERO = [
+    { badge: "NEW SEASON", title: "Midnight Harbor", meta: "Thriller  \u2022  2026  \u2022  TV-MA  \u2022  8 Episodes",
+      desc: "When a lighthouse keeper vanishes during the worst storm in decades, a tired detective uncovers a town that has been keeping secrets for generations.",
+      c1: "#ff5f6d", c2: "#3a1c71" },
+    { badge: "ORIGINAL FILM", title: "The Long Orbit", meta: "Sci-Fi  \u2022  2026  \u2022  PG-13  \u2022  2h 04m",
+      desc: "Two astronauts, one failing station, and nine days of air. A breathtaking race home that asks what we are willing to leave behind.",
+      c1: "#27c8ff", c2: "#0b1d57" },
+    { badge: "DOCUMENTARY", title: "Wild Coasts", meta: "Nature  \u2022  2025  \u2022  TV-G  \u2022  6 Episodes",
+      desc: "Sail the planet's most dramatic shorelines in stunning 4K, from roaring Atlantic cliffs to quiet tropical reefs full of life.",
+      c1: "#38ef7d", c2: "#0b4d45" }
+  ];
+
+  var APPS = [
+    { name: "Movies",  icon: "play",   c1: "#ff5f6d", c2: "#c31432" },
+    { name: "Live TV", icon: "tv",     c1: "#4facfe", c2: "#1f4bd8" },
+    { name: "Music",   icon: "music",  c1: "#f857a6", c2: "#8e2de2" },
+    { name: "Games",   icon: "game",   c1: "#43e97b", c2: "#0f9b6e" },
+    { name: "Photos",  icon: "photo",  c1: "#fbc531", c2: "#e8590c" },
+    { name: "Web",     icon: "globe",  c1: "#7ee8fa", c2: "#3a6df0" },
+    { name: "Sports",  icon: "sports", c1: "#ff9966", c2: "#d4380d" },
+    { name: "Kids",    icon: "kids",   c1: "#c471f5", c2: "#fa71cd" },
+    { name: "Search",  icon: "search", c1: "#667eea", c2: "#3b2f86" }
+  ];
+
+  var WATCH = [
+    { title: "Midnight Harbor", sub: "S1 \u2022 E4  \u2022  32 min left",  pct: 62, c1: "#ff5f6d", c2: "#3a1c71" },
+    { title: "Neon District",   sub: "S2 \u2022 E1  \u2022  48 min left",  pct: 15, c1: "#f857a6", c2: "#1d1b4f" },
+    { title: "The Long Orbit",  sub: "Film  \u2022  1h 12m left",          pct: 40, c1: "#27c8ff", c2: "#0b1d57" },
+    { title: "Cooking with Fire", sub: "S3 \u2022 E7  \u2022  12 min left", pct: 78, c1: "#ffb347", c2: "#b3261e" },
+    { title: "Wild Coasts",     sub: "E2  \u2022  40 min left",            pct: 30, c1: "#38ef7d", c2: "#0b4d45" },
+    { title: "Quiet Hours",     sub: "Film  \u2022  1h 40m left",          pct: 8,  c1: "#a18cd1", c2: "#2b2d6e" }
+  ];
+
+  var SYS = [
+    { name: "HDMI 1",    icon: "plug",    c1: "#4facfe", c2: "#1f4bd8", sub: "Input" },
+    { name: "HDMI 2",    icon: "plug",    c1: "#43e97b", c2: "#0f9b6e", sub: "Input" },
+    { name: "Mirroring", icon: "cast",    c1: "#f857a6", c2: "#8e2de2", sub: "Screen" },
+    { name: "Picture",   icon: "pic",     c1: "#fbc531", c2: "#e8590c", sub: "Picture settings" },
+    { name: "Sound",     icon: "sound",   c1: "#7ee8fa", c2: "#3a6df0", sub: "Sound settings" },
+    { name: "Settings",  icon: "sliders", c1: "#bbbbcc", c2: "#555a73", sub: "All settings" }
+  ];
+
+  /* ---------- Helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function svg(n) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[n] + '</svg>';
+  }
+  function grad(el, css) {
+    el.style.background = "";
+    el.style.background = css;
+    if (!el.style.background) { el.style.background = "-webkit-" + css; }
+  }
+  function lin(c1, c2) { return "linear-gradient(135deg, " + c1 + " 0%, " + c2 + " 100%)"; }
+  function rgba(hex, a) {
+    var n = parseInt(hex.charAt(0) === "#" ? hex.substr(1) : hex, 16);
+    return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+  }
+  function setT(el, v) { el.style.webkitTransform = v; el.style.transform = v; }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  /* ---------- Scaling to the screen ---------- */
+  var stage = $("stage");
+  function fit() {
+    var w = window.innerWidth || document.documentElement.clientWidth;
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    var s = Math.min(w / 1920, h / 1080);
+    setT(stage, "scale(" + s + ")");
+  }
+  window.onresize = fit;
+  fit();
+
+  /* ---------- Clock ---------- */
+  var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function tick() {
+    var d = new Date(), h = d.getHours();
+    $("clock").innerHTML = pad(h) + ":" + pad(d.getMinutes());
+    $("date").innerHTML = DAYS[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()];
+    $("greeting").innerHTML = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  }
+  tick();
+  setInterval(tick, 15000);
+
+  /* ---------- Ambient glow (cross-fading two layers) ---------- */
+  var glows = [$("glowA"), $("glowB")], glowFlip = 0, glowColor = "";
+  function setGlow(color) {
+    if (color === glowColor) { return; }
+    glowColor = color;
+    var next = glows[glowFlip], prev = glows[1 - glowFlip];
+    grad(next, "radial-gradient(ellipse at center, " + rgba(color, 0.5) + " 0%, rgba(0,0,0,0) 68%)");
+    next.className = "glow on";
+    prev.className = "glow";
+    glowFlip = 1 - glowFlip;
+  }
+
+  /* ---------- Build rows ---------- */
+  var inner = $("rowsInner");
+  var rows = [];
+
+  function makeRow(title) {
+    var el = document.createElement("div");
+    el.className = "row";
+    var t = document.createElement("div");
+    t.className = "rowTitle";
+    t.innerHTML = title;
+    var track = document.createElement("div");
+    track.className = "track";
+    el.appendChild(t);
+    el.appendChild(track);
+    inner.appendChild(el);
+    return { el: el, track: track, items: [], idx: 0, hero: false };
+  }
+
+  function addItem(row, el, type, data, color) {
+    var ring = document.createElement("div");
+    ring.className = "ring";
+    el.appendChild(ring);
+    el.style.webkitAnimationDelay = (row.items.length * 0.06 + 0.15) + "s";
+    el.style.animationDelay = (row.items.length * 0.06 + 0.15) + "s";
+    row.track.appendChild(el);
+    row.items.push({ el: el, type: type, data: data, color: color });
+  }
+
+  // Hero row
+  (function () {
+    var r = { el: $("rowHero"), track: null, items: [], idx: 0, hero: true };
+    r.items.push({ el: $("btnPlay"), type: "play", data: null, color: null });
+    r.items.push({ el: $("btnList"), type: "list", data: null, color: null });
+    var i;
+    for (i = 0; i < 2; i++) {
+      var ring = document.createElement("div");
+      ring.className = "ring";
+      r.items[i].el.appendChild(ring);
+    }
+    rows.push(r);
+  })();
+
+  // Apps
+  (function () {
+    var r = makeRow("Your Apps"), i, a, el, f;
+    for (i = 0; i < APPS.length; i++) {
+      a = APPS[i];
+      el = document.createElement("div");
+      el.className = "item app";
+      f = document.createElement("div");
+      f.className = "face";
+      grad(f, lin(a.c1, a.c2));
+      el.appendChild(f);
+      var ico = document.createElement("div");
+      ico.className = "ico";
+      ico.innerHTML = svg(a.icon);
+      var nm = document.createElement("div");
+      nm.className = "name";
+      nm.innerHTML = a.name;
+      el.appendChild(ico);
+      el.appendChild(nm);
+      addItem(r, el, "app", a, a.c1);
+    }
+    rows.push(r);
+  })();
+
+  // Continue watching
+  (function () {
+    var r = makeRow("Continue Watching"), i, w, el, f;
+    for (i = 0; i < WATCH.length; i++) {
+      w = WATCH[i];
+      el = document.createElement("div");
+      el.className = "item watch";
+      f = document.createElement("div");
+      f.className = "face";
+      grad(f, lin(w.c1, w.c2));
+      el.appendChild(f);
+      el.insertAdjacentHTML("beforeend",
+        '<div class="orb"></div><div class="shade"></div><div class="play"></div>' +
+        '<div class="title">' + w.title + '</div><div class="sub">' + w.sub + '</div>' +
+        '<div class="bar"><i style="width:' + w.pct + '%"></i></div>');
+      addItem(r, el, "watch", w, w.c1);
+    }
+    rows.push(r);
+  })();
+
+  // Inputs & settings
+  (function () {
+    var r = makeRow("Inputs &amp; Settings"), i, s, el, f;
+    for (i = 0; i < SYS.length; i++) {
+      s = SYS[i];
+      el = document.createElement("div");
+      el.className = "item sys";
+      f = document.createElement("div");
+      f.className = "face";
+      el.appendChild(f);
+      var ico = document.createElement("div");
+      ico.className = "ico";
+      grad(ico, lin(s.c1, s.c2));
+      ico.innerHTML = svg(s.icon);
+      var nm = document.createElement("div");
+      nm.className = "name";
+      nm.innerHTML = s.name;
+      el.appendChild(ico);
+      el.appendChild(nm);
+      addItem(r, el, "sys", s, s.c1);
+    }
+    rows.push(r);
+  })();
+
+  /* ---------- Hero rotation ---------- */
+  var heroIdx = 0, heroTimer = null;
+  var dotsEl = $("heroDots"), i0;
+  for (i0 = 0; i0 < HERO.length; i0++) { dotsEl.appendChild(document.createElement("i")); }
+
+  function paintHero(n) {
+    var h = HERO[n], d = dotsEl.childNodes, k;
+    $("heroBadge").innerHTML = h.badge;
+    $("heroTitle").innerHTML = h.title;
+    $("heroMeta").innerHTML = h.meta;
+    $("heroDesc").innerHTML = h.desc;
+    grad($("heroArt"), lin(h.c1, h.c2));
+    for (k = 0; k < d.length; k++) { d[k].className = (k === n) ? "on" : ""; }
+    if (cur.r === 0) { setGlow(h.c1); }
+  }
+  function setHero(n) {
+    heroIdx = n;
+    $("heroText").className = "out";
+    $("heroArt").className = "out";
+    setTimeout(function () {
+      paintHero(n);
+      $("heroText").className = "";
+      $("heroArt").className = "";
+    }, 350);
+  }
+  function startHero() {
+    clearInterval(heroTimer);
+    heroTimer = setInterval(function () { setHero((heroIdx + 1) % HERO.length); }, 9000);
+  }
+
+  /* ---------- Focus handling ---------- */
+  var cur = { r: 0, i: 0 };
+  var rowsEl = $("rowsInner");
+
+  function scrollRow(r) {
+    var row = rows[r];
+    var y = r === 0 ? 0 : row.el.offsetTop - 10;
+    setT(rowsEl, "translateY(" + (-y) + "px)");
+  }
+  function scrollTrack(r, i) {
+    var row = rows[r];
+    if (!row.track) { return; }
+    var it = row.items[i].el;
+    var off = row.off || 0;
+    var left = it.offsetLeft, right = left + it.offsetWidth;
+    if (right - off > 1820) { off = right - 1820; }
+    if (left - off < 100) { off = left - 100; }
+    if (off < 0) { off = 0; }
+    row.off = off;
+    setT(row.track, "translateX(" + (-off) + "px)");
+  }
+
+  function setFocus(r, i) {
+    var old = rows[cur.r].items[cur.i], k;
+    old.el.className = old.el.className.replace(/\s*focused/g, "");
+    for (k = 0; k < rows.length; k++) {
+      rows[k].el.className = rows[k].el.className.replace(/\s*active/g, "");
+    }
+    cur.r = r; cur.i = i;
+    rows[r].idx = i;
+    var it = rows[r].items[i];
+    it.el.className += " focused";
+    if (!rows[r].hero) { rows[r].el.className += " active"; }
+    scrollRow(r);
+    scrollTrack(r, i);
+    setGlow(it.color || HERO[heroIdx].c1);
+  }
+
+  /* ---------- Actions ---------- */
+  var launchEl = $("launch"), launching = false, launchTimer = null, toastTimer = null;
+
+  function openLaunch(name, sub, c1, c2, icon) {
+    launching = true;
+    grad($("lIcon"), lin(c1, c2));
+    $("lIcon").innerHTML = svg(icon);
+    $("lName").innerHTML = name;
+    $("lSub").innerHTML = sub;
+    launchEl.className = "show";
+    clearTimeout(launchTimer);
+    launchTimer = setTimeout(closeLaunch, 2800);
+  }
+  function closeLaunch() {
+    clearTimeout(launchTimer);
+    launchEl.className = "";
+    launching = false;
+  }
+  function toast(msg) {
+    var t = $("toast");
+    t.innerHTML = msg;
+    t.className = "show";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = ""; }, 2000);
+  }
+
+  function activate() {
+    var it = rows[cur.r].items[cur.i], d = it.data;
+    if (it.type === "play") {
+      var h = HERO[heroIdx];
+      openLaunch(h.title, "Starting playback\u2026", h.c1, h.c2, "play");
+    } else if (it.type === "list") {
+      toast("Added \u201C" + HERO[heroIdx].title + "\u201D to My List");
+    } else if (it.type === "app") {
+      openLaunch(d.name, "Opening app\u2026", d.c1, d.c2, d.icon);
+    } else if (it.type === "watch") {
+      openLaunch(d.title, "Resuming where you left off\u2026", d.c1, d.c2, "play");
+    } else if (it.type === "sys") {
+      openLaunch(d.name, d.sub, d.c1, d.c2, d.icon);
+    }
+  }
+
+  /* ---------- Keys ---------- */
+  document.onkeydown = function (e) {
+    e = e || window.event;
+    var k = e.keyCode, r = cur.r, i = cur.i, handled = true;
+
+    if (launching) {
+      if (k === 8 || k === 27 || k === 10009 || k === 13) { closeLaunch(); }
+      if (e.preventDefault) { e.preventDefault(); }
+      return false;
+    }
+
+    if (k === 37) { if (i > 0) { setFocus(r, i - 1); } }
+    else if (k === 39) { if (i < rows[r].items.length - 1) { setFocus(r, i + 1); } }
+    else if (k === 38) { if (r > 0) { setFocus(r - 1, Math.min(rows[r - 1].idx, rows[r - 1].items.length - 1)); } }
+    else if (k === 40) { if (r < rows.length - 1) { setFocus(r + 1, Math.min(rows[r + 1].idx, rows[r + 1].items.length - 1)); } }
+    else if (k === 13) { activate(); }
+    else if (k === 8 || k === 27 || k === 10009) { if (r !== 0 || i !== 0) { setFocus(0, 0); } }
+    else { handled = false; }
+
+    if (handled && e.preventDefault) { e.preventDefault(); }
+    return !handled;
+  };
+
+  // Mouse support (handy for testing on a desktop)
+  (function () {
+    var r, i;
+    function bind(rr, ii) {
+      rows[rr].items[ii].el.onclick = function () { setFocus(rr, ii); activate(); };
+    }
+    for (r = 0; r < rows.length; r++) { for (i = 0; i < rows[r].items.length; i++) { bind(r, i); } }
+    launchEl.onclick = closeLaunch;
+  })();
+
+  // Samsung Tizen: make sure the Back key reaches us
+  try {
+    if (window.tizen && tizen.tvinputdevice) {
+      tizen.tvinputdevice.registerKey("MediaPlayPause");
+    }
+  } catch (err) {}
+
+  /* ---------- Go ---------- */
+  paintHero(0);
+  setFocus(0, 0);
+  startHero();
+  setTimeout(function () { stage.className = "ready"; }, 50);
+})();
+</script>
+</body>
+</html>
