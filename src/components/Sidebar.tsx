@@ -19,13 +19,7 @@ import {
   Check,
   PanelLeftClose,
   PanelRightClose,
-  Sun,
-  CloudRain,
-  Cloud,
-  Clock,
-  Sparkles,
   Search,
-  RotateCcw,
 } from 'lucide-react';
 import { SidebarShortcut, TodoItem, SidebarSettings, AppShortcut } from '../types';
 import { DEFAULT_SIDEBAR_SHORTCUTS } from '../data/sidebarShortcuts';
