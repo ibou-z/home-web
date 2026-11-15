@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Plus, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { AppShortcut, DashboardSettings, SidebarSettings } from './types';
 import { DEFAULT_APPS } from './data/defaultApps';
 import { BACKGROUND_PRESETS } from './data/presets';

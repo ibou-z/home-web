@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Sparkles, Check } from 'lucide-react';
+import { X, Plus, Check } from 'lucide-react';
 import { AppShortcut } from '../types';
 import { AppLogo } from './AppLogo';
 

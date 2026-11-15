@@ -4,7 +4,6 @@ import {
   Bookmark,
   FileText,
   CheckSquare,
-  Calendar as CalendarIcon,
   CloudSun,
   Settings,
   ChevronLeft,
