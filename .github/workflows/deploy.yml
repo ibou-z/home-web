@@ -32,6 +32,12 @@ jobs:
       - name: Build dashboard
         run: npm run build
 
+      - name: Verify production output
+        run: |
+          test -f dist/index.html
+          ! grep -q '/src/main.tsx' dist/index.html
+          grep -q '/home-web/assets/' dist/index.html
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
